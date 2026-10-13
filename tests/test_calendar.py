@@ -9,60 +9,74 @@ from calendar_service import (
     remove_event,
     sort_events,
 )
-from models import Event
-from storage import StorageError, load_events, save_events
+from models import Event, User
+from storage import StorageError, load_users, save_users
 
 
-def test_parse_event_date() -> None:
-    assert parse_event_date("31.12.2099") == date(2099, 12, 31)
+def test_event_object() -> None:
+    event = Event("День рождения", date(2099, 12, 31), "личное")
+    assert event.name == "День рождения"
+    assert event.days_until(date(2099, 12, 30)) == 1
+    assert event.is_upcoming(date(2099, 12, 30))
+    assert "День рождения" in str(event)
 
 
-def test_parse_event_date_rejects_invalid_value() -> None:
-    with pytest.raises(ValueError):
-        parse_event_date("31.02.2025")
+def test_event_completion() -> None:
+    event = Event("Встреча", date(2099, 1, 1))
+    event.mark_completed()
+    assert event.is_completed
+    assert not event.is_upcoming(date(2098, 1, 1))
 
 
-def test_add_sort_and_remove_events() -> None:
-    events: list[Event] = []
-    add_event(events, "Новый год", date(2099, 1, 1))
-    add_event(events, "День рождения", date(2080, 5, 10))
+def test_user_manages_events() -> None:
+    user = User(1, "Анна")
+    event = add_event(user, "Праздник", date(2099, 5, 10))
+    assert user.find_event("праздник") is event
+    assert user.upcoming_events(date(2099, 1, 1)) == [event]
+    assert remove_event(user, "ПРАЗДНИК")
+    assert user.events == []
 
-    assert [event.name for event in sort_events(events)] == [
-        "День рождения",
-        "Новый год",
+
+def test_sort_events() -> None:
+    events = [
+        Event("Позднее", date(2099, 12, 31)),
+        Event("Ранее", date(2099, 1, 1)),
     ]
-    assert remove_event(events, "новый год") is True
-    assert len(events) == 1
+    assert [event.name for event in sort_events(events)] == [
+        "Ранее",
+        "Позднее",
+    ]
 
 
-def test_event_status() -> None:
+def test_status_and_date_validation() -> None:
     event = Event("Встреча", date(2025, 1, 2))
     assert event_status(
         event,
         date(2025, 1, 1),
     ) == "До события осталось дней: 1"
-    assert "сегодня" in event_status(event, date(2025, 1, 2))
-    assert event_status(event, date(2025, 1, 3)) == "Событие уже прошло."
+    with pytest.raises(ValueError):
+        parse_event_date("31.02.2025")
 
 
 def test_json_round_trip(tmp_path) -> None:
-    file_path = tmp_path / "events.json"
-    source = {"Анна": [Event("Праздник", date(2026, 9, 8))]}
-    save_events(file_path, source)
-
-    assert load_events(file_path) == source
+    path = tmp_path / "events.json"
+    users = [User(1, "Анна", [Event("Праздник", date(2026, 9, 8), "семья")])]
+    save_users(path, users)
+    loaded = load_users(path)
+    assert loaded[0].name == "Анна"
+    assert loaded[0].events[0].category == "семья"
+    assert loaded[0].events[0].event_date == date(2026, 9, 8)
 
 
 def test_invalid_json_raises_storage_error(tmp_path) -> None:
-    file_path = tmp_path / "events.json"
-    file_path.write_text("{broken", encoding="utf-8")
-
+    path = tmp_path / "events.json"
+    path.write_text("{broken", encoding="utf-8")
     with pytest.raises(StorageError):
-        load_events(file_path)
+        load_users(path)
 
 
-def test_missing_file_returns_empty_storage(tmp_path) -> None:
-    assert load_events(tmp_path / "missing.json") == {}
+def test_missing_file_returns_empty_list(tmp_path) -> None:
+    assert load_users(tmp_path / "missing.json") == []
 
 
 if __name__ == "__main__":

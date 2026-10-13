@@ -1,27 +1,28 @@
 ﻿from datetime import date, datetime
 from typing import Any
 
-from models import DATE_FORMAT, Event
+from models import DATE_FORMAT, Event, User
 
 
 def parse_event_date(date_text: str) -> date:
     return datetime.strptime(date_text, DATE_FORMAT).date()
 
 
-def add_event(events: list[Event], name: str, event_date: date) -> Event:
+def add_event(
+    user: User,
+    name: str,
+    event_date: date,
+    category: str = "общее",
+) -> Event:
     if not name.strip():
         raise ValueError("Название события не может быть пустым.")
-    event = Event(name=name.strip(), event_date=event_date)
-    events.append(event)
+    event = Event(name.strip(), event_date, category.strip() or "общее")
+    user.add_event(event)
     return event
 
 
-def remove_event(events: list[Event], event_name: str) -> bool:
-    for event in events:
-        if event.name.casefold() == event_name.casefold():
-            events.remove(event)
-            return True
-    return False
+def remove_event(user: User, event_name: str) -> bool:
+    return user.remove_event(event_name)
 
 
 def sort_events(events: list[Event]) -> list[Event]:
@@ -32,17 +33,14 @@ def sort_events(events: list[Event]) -> list[Event]:
 
 
 def event_status(event: Event, today: date | None = None) -> str:
-    current_date = today or date.today()
-    days_left = (event.event_date - current_date).days
+    if event.is_completed:
+        return "Событие выполнено."
+    days_left = event.days_until(today)
     if days_left > 0:
         return f"До события осталось дней: {days_left}"
     if days_left == 0:
         return "Событие сегодня. Напоминание: не забудьте о нём!"
     return "Событие уже прошло."
-
-
-def event_from_legacy_tuple(event_data: tuple[str, date]) -> Event:
-    return Event(name=event_data[0], event_date=event_data[1])
 
 
 def events_to_dict(events: list[Event]) -> list[dict[str, Any]]:
@@ -51,3 +49,14 @@ def events_to_dict(events: list[Event]) -> list[dict[str, Any]]:
 
 def events_from_dict(events_data: list[dict[str, Any]]) -> list[Event]:
     return [Event.from_dict(event_data) for event_data in events_data]
+
+
+__all__ = [
+    "add_event",
+    "event_status",
+    "events_from_dict",
+    "events_to_dict",
+    "parse_event_date",
+    "remove_event",
+    "sort_events",
+]
