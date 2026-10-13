@@ -1,0 +1,9 @@
+{% if event.is_completed %}
+    <span class="badge bg-secondary event-status event-status-completed">
+        Выполнено
+    </span>
+{% else %}
+    <span class="badge bg-success event-status event-status-upcoming">
+        Актуально
+    </span>
+{% endif %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Главная — Семейный календарь{% endblock %}
+
+{% block content %}
+<div class="p-4 p-md-5 mb-4 rounded-3 bg-light border">
+    <div class="container-fluid py-2">
+        <h1 class="display-5 fw-bold text-primary">Семейный календарь</h1>
+        <p class="col-md-9 fs-5 text-secondary">
+            Учебная веб-система для управления семейными событиями, напоминаниями, памятными датами и задачами.
+            Построена на базе фреймворка Django с использованием Django Template Language.
+        </p>
+        <div class="d-flex gap-2">
+            <a href="{% url 'events:list' %}" class="btn btn-primary btn-lg">Просмотреть события</a>
+            <a href="{% url 'categories:list' %}" class="btn btn-outline-secondary btn-lg">Категории</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4 g-3">
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-number">{{ total_events }}</div>
+            <div class="text-muted">Всего событий</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-number text-success">{{ upcoming_count }}</div>
+            <div class="text-muted">Предстоящих</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-number text-secondary">{{ completed_count }}</div>
+            <div class="text-muted">Выполненных</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="metric-card">
+            <div class="metric-number text-info">{{ categories_count }}</div>
+            <div class="text-muted">Категорий</div>
+        </div>
+    </div>
+</div>
+
+<div class="card p-4 shadow-sm">
+    <h4 class="mb-3">Ближайшие события</h4>
+    {% if recent_events %}
+        <ul class="list-group list-group-flush">
+            {% for event in recent_events %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="{% url 'events:detail' event.id %}" class="fw-bold text-decoration-none">
+                            {{ event.name|default:"Без названия" }}
+                        </a>
+                        <small class="text-muted d-block">{{ event.event_date }} — {{ event.category }}</small>
+                    </div>
+                    {% if event.is_completed %}
+                        <span class="badge bg-secondary">Выполнено</span>
+                    {% else %}
+                        <span class="badge bg-success">Актуально</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">События пока не добавлены.</p>
+    {% endif %}
+</div>
+{% endblock %}

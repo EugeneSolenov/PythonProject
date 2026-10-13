@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Категории — Семейный календарь{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h2 mb-0">Категории событий</h1>
+    <span class="badge bg-info text-dark fs-6">Всего категорий: {{ categories|length }}</span>
+</div>
+
+<p class="text-muted">Категории позволяют группировать семейные мероприятия по типам и важности.</p>
+
+<div class="categories-list">
+    {% for cat in categories %}
+        {% include "categories/includes/category_card.html" %}
+    {% empty %}
+        <div class="alert alert-info">
+            Категории не найдены.
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
