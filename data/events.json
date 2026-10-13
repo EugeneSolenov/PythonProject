@@ -1,8 +1,53 @@
 {
-  "Анна": [
+  "users": [
     {
-      "name": "День рождения",
-      "event_date": "31.12.2099"
+      "id": 1,
+      "name": "Евгений",
+      "email": "solenov@example.com",
+      "events": [
+        {
+          "id": 1,
+          "name": "Защита ПР5 и ПР6 по Django",
+          "event_date": "20.10.2026",
+          "category": "Учёба и работа",
+          "is_completed": false
+        },
+        {
+          "id": 2,
+          "name": "Семейный праздник и ужин",
+          "event_date": "25.10.2026",
+          "category": "Семья и дети",
+          "is_completed": false
+        },
+        {
+          "id": 3,
+          "name": "Покупка книг по Python и Django",
+          "event_date": "10.10.2026",
+          "category": "Личные дела",
+          "is_completed": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Анна",
+      "email": "anna@example.com",
+      "events": [
+        {
+          "id": 4,
+          "name": "День рождения",
+          "event_date": "31.12.2099",
+          "category": "Праздники и памятные даты",
+          "is_completed": false
+        },
+        {
+          "id": 5,
+          "name": "Визит к врачу",
+          "event_date": "18.10.2026",
+          "category": "Здоровье и спорт",
+          "is_completed": false
+        }
+      ]
     }
   ]
 }
