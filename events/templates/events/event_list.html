@@ -5,10 +5,14 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h2 mb-0">События семейного календаря</h1>
-    <span class="badge bg-primary fs-6">Всего событий: {{ events|length }}</span>
+    <div>
+        <a href="{% url 'events:search' %}" class="btn btn-outline-primary btn-sm me-2">🔍 Поиск по дате</a>
+        <a href="{% url 'events:statistics' %}" class="btn btn-outline-info btn-sm me-2">📊 Статистика</a>
+        <span class="badge bg-primary fs-6">Всего событий: {{ events|length }}</span>
+    </div>
 </div>
 
-<p class="text-muted">Ниже представлены все запланированные и прошедшие события членов семьи.</p>
+<p class="text-muted">Ниже представлены все запланированные и прошедшие события членов семьи из базы данных SQLite.</p>
 
 <div class="events-list">
     {% for event in events %}

@@ -10,9 +10,11 @@
             Учебная веб-система для управления семейными событиями, напоминаниями, памятными датами и задачами.
             Построена на базе фреймворка Django с использованием Django Template Language.
         </p>
-        <div class="d-flex gap-2">
+        <div class="d-flex flex-wrap gap-2">
             <a href="{% url 'events:list' %}" class="btn btn-primary btn-lg">Просмотреть события</a>
+            <a href="{% url 'events:search' %}" class="btn btn-outline-primary btn-lg">Поиск по дате</a>
             <a href="{% url 'categories:list' %}" class="btn btn-outline-secondary btn-lg">Категории</a>
+            <a href="{% url 'events:statistics' %}" class="btn btn-outline-info btn-lg">Статистика</a>
         </div>
     </div>
 </div>

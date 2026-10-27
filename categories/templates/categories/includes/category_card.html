@@ -5,6 +5,9 @@
                 <span class="me-2">{{ cat.icon }}</span>
                 {{ cat.name|default:"Без названия" }}
             </h4>
+            {% if cat.events_count is not None %}
+                <span class="badge bg-light text-primary border">Событий: {{ cat.events_count }}</span>
+            {% endif %}
         </div>
 
         <p class="card-text text-muted mb-3">

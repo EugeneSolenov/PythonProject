@@ -14,6 +14,7 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h2 class="card-title text-primary mb-0">
+                    {% if event.category_icon %}<span class="me-2">{{ event.category_icon }}</span>{% endif %}
                     {{ event.name|default:"Без названия" }}
                 </h2>
                 {% include "events/includes/event_status.html" %}
@@ -28,22 +29,32 @@
             <p class="card-text">
                 <strong>Дата события:</strong> {{ event.event_date }}
             </p>
+            {% if event.user_name %}
+            <p class="card-text">
+                <strong>Ответственный член семьи:</strong> {{ event.user_name }}
+                {% if event.user_email %}<span class="text-muted">({{ event.user_email }})</span>{% endif %}
+            </p>
+            {% endif %}
             <p class="card-text">
                 <strong>Осталось дней:</strong>
-                {% if days_left > 0 %}
-                    <span class="text-success fw-bold">{{ days_left }} дн.</span>
-                {% elif days_left == 0 %}
-                    <span class="text-warning fw-bold">Сегодня!</span>
+                {% if days_left is not None %}
+                    {% if days_left > 0 %}
+                        <span class="text-success fw-bold">{{ days_left }} дн.</span>
+                    {% elif days_left == 0 %}
+                        <span class="text-warning fw-bold">Сегодня!</span>
+                    {% else %}
+                        <span class="text-muted">Событие уже состоялось</span>
+                    {% endif %}
                 {% else %}
-                    <span class="text-muted">Событие уже состоялось</span>
+                    <span class="text-muted">—</span>
                 {% endif %}
             </p>
             <p class="card-text">
                 <strong>Отметка о выполнении:</strong>
                 {% if event.is_completed %}
-                    <span class="text-success">Да, выполнено</span>
+                    <span class="text-success fw-bold">Да, выполнено</span>
                 {% else %}
-                    <span class="text-primary">В процессе / запланировано</span>
+                    <span class="text-primary fw-bold">В процессе / запланировано</span>
                 {% endif %}
             </p>
 

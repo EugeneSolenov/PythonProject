@@ -67,6 +67,29 @@ class WebInterfaceTests(SimpleTestCase):
         self.assertTemplateUsed(response, "categories/category_detail.html")
         self.assertContains(response, "Категория не найдена", status_code=404)
 
+    def test_events_search_view(self):
+        # GET запрос без параметров даты
+        response = self.client.get(reverse("events:search"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "events/search.html")
+        self.assertContains(response, "Поиск событий по дате")
+
+        # GET запрос с параметром даты
+        response_with_date = self.client.get(
+            reverse("events:search"),
+            {"date": "2026-10-20"},
+        )
+        self.assertEqual(response_with_date.status_code, 200)
+        self.assertTemplateUsed(response_with_date, "events/search.html")
+        self.assertContains(response_with_date, "2026-10-20")
+
+    def test_events_statistics_view(self):
+        response = self.client.get(reverse("events:statistics"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "events/statistics.html")
+        self.assertContains(response, "Статистика семейного календаря")
+        self.assertContains(response, "Распределение событий по категориям")
+
     def test_404_handler_for_unknown_path(self):
         with self.settings(DEBUG=False):
             response = self.client.get("/some-unknown-path-for-test/")

@@ -1,23 +1,30 @@
 from django.shortcuts import render
-from models.categories import find_category_by_id
-from storage import load_all_events, load_categories
+from db.database import get_connection
 
 
 def categories(request):
-    categories_list = load_categories("data/categories.json")
-    events_list = load_all_events("data/events.json")
-
-    # Подсчитаем события по категориям
-    counts = {}
-    for cat in categories_list:
-        counts[cat.name] = len([
-            e for e in events_list
-            if e.category.casefold() == cat.name.casefold()
-        ])
+    """Список категорий событий с подсчётом числа событий (GROUP BY)."""
+    conn = get_connection()
+    categories_list = conn.execute("""
+        SELECT
+            categories.id,
+            categories.name,
+            categories.description,
+            categories.icon,
+            COUNT(events.id) AS events_count
+        FROM categories
+        LEFT JOIN events ON categories.id = events.category_id
+        GROUP BY
+            categories.id,
+            categories.name,
+            categories.description,
+            categories.icon
+        ORDER BY categories.name ASC;
+    """).fetchall()
+    conn.close()
 
     context = {
         "categories": categories_list,
-        "counts": counts,
     }
     return render(
         request,
@@ -27,16 +34,32 @@ def categories(request):
 
 
 def category_detail(request, category_id):
-    categories_list = load_categories("data/categories.json")
-    category = find_category_by_id(categories_list, category_id)
+    """Детальная информация о категории и список привязанных к ней событий."""
+    conn = get_connection()
+    category = conn.execute("""
+        SELECT id, name, description, icon
+        FROM categories
+        WHERE id = ?;
+    """, [category_id]).fetchone()
 
     category_events = []
     if category is not None:
-        events_list = load_all_events("data/events.json")
-        category_events = [
-            e for e in events_list
-            if e.category.casefold() == category.name.casefold()
-        ]
+        category_events = conn.execute("""
+            SELECT
+                events.id,
+                events.name,
+                events.event_date,
+                events.is_completed,
+                categories.name AS category,
+                categories.icon AS category_icon,
+                users.name AS user_name
+            FROM events
+            JOIN categories ON events.category_id = categories.id
+            JOIN users ON events.user_id = users.id
+            WHERE events.category_id = ?
+            ORDER BY events.event_date ASC;
+        """, [category_id]).fetchall()
+    conn.close()
 
     context = {
         "category": category,
