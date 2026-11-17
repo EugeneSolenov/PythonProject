@@ -14,10 +14,39 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Category',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100, unique=True, verbose_name='Название')),
-                ('description', models.TextField(blank=True, default='', verbose_name='Описание')),
-                ('icon', models.CharField(default='📅', max_length=20, verbose_name='Иконка')),
+                (
+                    'id',
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
+                (
+                    'name',
+                    models.CharField(
+                        max_length=100,
+                        unique=True,
+                        verbose_name='Название',
+                    ),
+                ),
+                (
+                    'description',
+                    models.TextField(
+                        blank=True,
+                        default='',
+                        verbose_name='Описание',
+                    ),
+                ),
+                (
+                    'icon',
+                    models.CharField(
+                        default='📅',
+                        max_length=20,
+                        verbose_name='Иконка',
+                    ),
+                ),
             ],
             options={
                 'verbose_name': 'Категория',

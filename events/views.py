@@ -1,64 +1,94 @@
-from datetime import date, datetime
+from datetime import date
+from django.core.paginator import Paginator
+from django.db.models import Count, F, Max, Min, Q
 from django.shortcuts import render
-from db.database import get_connection
+
+from categories.models import Category
+from events.models import Event
+from users.models import User
 
 
 def events(request):
-    """Отображение списка всех событий из SQLite с данными о категориях."""
-    conn = get_connection()
-    events_list = conn.execute("""
-        SELECT
-            events.id,
-            events.name,
-            events.event_date,
-            events.is_completed,
-            events.user_id,
-            events.category_id,
-            categories.name AS category,
-            categories.icon AS category_icon,
-            users.name AS user_name
-        FROM events
-        JOIN categories ON events.category_id = categories.id
-        JOIN users ON events.user_id = users.id
-        ORDER BY events.event_date ASC;
-    """).fetchall()
-    conn.close()
+    """Список событий через ORM с фильтрацией, сортировкой и пагинацией."""
+    events_qs = Event.objects.select_related("category", "user")
+
+    # 1. Чтение параметров фильтрации
+    date_str = request.GET.get("date", "").strip()
+    category_id = request.GET.get("category", "").strip()
+    user_id = request.GET.get("user", "").strip()
+    status_filter = request.GET.get("status", "").strip()
+    error = None
+
+    # Фильтрация по дате
+    if date_str:
+        try:
+            selected_date = date.fromisoformat(date_str)
+            events_qs = events_qs.filter(event_date=selected_date)
+        except ValueError:
+            error = "Некорректный формат даты (ожидается ГГГГ-ММ-ДД)"
+
+    # Фильтрация по категории (связанная модель)
+    if category_id.isdigit():
+        events_qs = events_qs.filter(category_id=int(category_id))
+
+    # Фильтрация по пользователю (связанная модель)
+    if user_id.isdigit():
+        events_qs = events_qs.filter(user_id=int(user_id))
+
+    # Исключение записей с помощью exclude() или фильтрация по статусу
+    if status_filter == "active":
+        events_qs = events_qs.exclude(is_completed=True)
+    elif status_filter == "completed":
+        events_qs = events_qs.filter(is_completed=True)
+
+    # 2. Сортировка
+    sort = request.GET.get("sort", "date").strip()
+    sort_fields = {
+        "date": ["event_date", "pk"],
+        "-date": ["-event_date", "-pk"],
+        "name": ["name", "event_date"],
+        "category": ["category__name", "event_date"],
+        "user": ["user__name", "event_date"],
+    }
+    ordering = sort_fields.get(sort, ["event_date", "pk"])
+    events_qs = events_qs.order_by(*ordering)
+
+    # 3. Пагинация (по 5 событий на страницу)
+    total_count = events_qs.count()
+    paginator = Paginator(events_qs, 5)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "events": page_obj,
+        "page_obj": page_obj,
+        "total_count": total_count,
+        "selected_date": date_str,
+        "selected_category": category_id,
+        "selected_user": user_id,
+        "selected_status": status_filter,
+        "sort": sort,
+        "categories": Category.objects.order_by("name"),
+        "users": User.objects.order_by("name"),
+        "error": error,
+    }
     return render(
         request,
         "events/event_list.html",
-        {"events": events_list},
+        context,
     )
 
 
 def event_detail(request, event_id):
-    """Детальная карточка события по идентификатору."""
-    conn = get_connection()
-    event = conn.execute("""
-        SELECT
-            events.id,
-            events.name,
-            events.event_date,
-            events.is_completed,
-            events.user_id,
-            events.category_id,
-            categories.name AS category,
-            categories.icon AS category_icon,
-            users.name AS user_name,
-            users.email AS user_email
-        FROM events
-        JOIN categories ON events.category_id = categories.id
-        JOIN users ON events.user_id = users.id
-        WHERE events.id = ?;
-    """, [event_id]).fetchone()
-    conn.close()
+    """Детальная карточка события по идентификатору через Django ORM."""
+    event = (
+        Event.objects
+        .select_related("category", "user")
+        .filter(pk=event_id)
+        .first()
+    )
 
-    days_left = None
-    if event is not None:
-        try:
-            ev_date = datetime.strptime(event["event_date"], "%Y-%m-%d").date()
-            days_left = (ev_date - date.today()).days
-        except (ValueError, TypeError):
-            days_left = None
+    days_left = event.days_until() if event is not None else None
 
     context = {
         "event": event,
@@ -73,90 +103,87 @@ def event_detail(request, event_id):
 
 
 def search_events(request):
-    """Поиск событий на выбранную дату (параметризованный SQL-запрос)."""
+    """Поиск событий по дате и/или строковому запросу через Django ORM."""
     search_date = request.GET.get("date", "").strip()
+    query = request.GET.get("q", "").strip()
     events_found = []
-    if search_date:
-        conn = get_connection()
-        events_found = conn.execute("""
-            SELECT
-                events.id,
-                events.name,
-                events.event_date,
-                events.is_completed,
-                categories.name AS category,
-                categories.icon AS category_icon,
-                users.name AS user_name
-            FROM events
-            JOIN categories ON events.category_id = categories.id
-            JOIN users ON events.user_id = users.id
-            WHERE events.event_date = ?
-            ORDER BY events.name ASC;
-        """, [search_date]).fetchall()
-        conn.close()
+
+    if search_date or query:
+        events_qs = Event.objects.select_related("category", "user")
+
+        if search_date:
+            try:
+                parsed_date = date.fromisoformat(search_date)
+                events_qs = events_qs.filter(event_date=parsed_date)
+            except ValueError:
+                pass
+
+        if query:
+            events_qs = events_qs.filter(
+                Q(name__icontains=query)
+                | Q(category__name__icontains=query)
+                | Q(user__name__icontains=query)
+            )
+
+        events_found = events_qs.order_by("event_date", "name")
 
     return render(
         request,
         "events/search.html",
         {
             "search_date": search_date,
+            "query": query,
             "events": events_found,
         },
     )
 
 
 def statistics(request):
-    """Статистика календаря на основе SQL-агрегатов и группировок."""
-    conn = get_connection()
+    """Статистика календаря на основе Django ORM (aggregate, annotate)."""
+    # Сводные показатели через aggregate
+    summary = Event.objects.aggregate(
+        total_events=Count("id"),
+        active_events=Count("id", filter=Q(is_completed=False)),
+        completed_events=Count("id", filter=Q(is_completed=True)),
+        earliest_date=Min("event_date"),
+        latest_date=Max("event_date"),
+    )
 
-    summary = conn.execute("""
-        SELECT
-            COUNT(*) AS total_events,
-            SUM(CASE WHEN is_completed = 0 THEN 1 ELSE 0 END)
-                AS active_events,
-            SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END)
-                AS completed_events,
-            MIN(event_date) AS earliest_date,
-            MAX(event_date) AS latest_date
-        FROM events;
-    """).fetchone()
+    # Распределение по категориям (LEFT JOIN + GROUP BY)
+    category_stats = (
+        Category.objects
+        .annotate(
+            category_name=F("name"),
+            category_icon=F("icon"),
+            events_count=Count("events"),
+        )
+        .values("id", "category_name", "category_icon", "events_count")
+        .order_by("-events_count", "category_name")
+    )
 
-    category_stats = conn.execute("""
-        SELECT
-            categories.id AS category_id,
-            categories.name AS category_name,
-            categories.icon AS category_icon,
-            COUNT(events.id) AS events_count
-        FROM categories
-        LEFT JOIN events ON categories.id = events.category_id
-        GROUP BY categories.id, categories.name, categories.icon
-        ORDER BY events_count DESC, categories.name ASC;
-    """).fetchall()
+    # Распределение по пользователям (LEFT JOIN + GROUP BY)
+    user_stats = (
+        User.objects
+        .annotate(
+            user_name=F("name"),
+            user_email=F("email"),
+            events_count=Count("events"),
+        )
+        .values("id", "user_name", "user_email", "events_count")
+        .order_by("-events_count", "user_name")
+    )
 
-    user_stats = conn.execute("""
-        SELECT
-            users.id AS user_id,
-            users.name AS user_name,
-            users.email AS user_email,
-            COUNT(events.id) AS events_count
-        FROM users
-        LEFT JOIN events ON users.id = events.user_id
-        GROUP BY users.id, users.name, users.email
-        ORDER BY events_count DESC;
-    """).fetchall()
-
-    popular_categories = conn.execute("""
-        SELECT
-            categories.name AS category_name,
-            COUNT(events.id) AS events_count
-        FROM categories
-        JOIN events ON categories.id = events.category_id
-        GROUP BY categories.id, categories.name
-        HAVING COUNT(events.id) > 1
-        ORDER BY events_count DESC;
-    """).fetchall()
-
-    conn.close()
+    # Популярные категории с количеством событий > 1 (GROUP BY + HAVING)
+    popular_categories = (
+        Category.objects
+        .annotate(
+            category_name=F("name"),
+            events_count=Count("events"),
+        )
+        .filter(events_count__gt=1)
+        .values("category_name", "events_count")
+        .order_by("-events_count")
+    )
 
     context = {
         "summary": summary,

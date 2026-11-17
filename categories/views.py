@@ -1,28 +1,16 @@
+from django.db.models import Count
 from django.shortcuts import render
-from db.database import get_connection
+
+from categories.models import Category
 
 
 def categories(request):
-    """Список категорий событий с подсчётом числа событий (GROUP BY)."""
-    conn = get_connection()
-    categories_list = conn.execute("""
-        SELECT
-            categories.id,
-            categories.name,
-            categories.description,
-            categories.icon,
-            COUNT(events.id) AS events_count
-        FROM categories
-        LEFT JOIN events ON categories.id = events.category_id
-        GROUP BY
-            categories.id,
-            categories.name,
-            categories.description,
-            categories.icon
-        ORDER BY categories.name ASC;
-    """).fetchall()
-    conn.close()
-
+    """Список категорий событий с подсчётом числа событий через ORM."""
+    categories_list = (
+        Category.objects
+        .annotate(events_count=Count("events"))
+        .order_by("name")
+    )
     context = {
         "categories": categories_list,
     }
@@ -34,32 +22,16 @@ def categories(request):
 
 
 def category_detail(request, category_id):
-    """Детальная информация о категории и список привязанных к ней событий."""
-    conn = get_connection()
-    category = conn.execute("""
-        SELECT id, name, description, icon
-        FROM categories
-        WHERE id = ?;
-    """, [category_id]).fetchone()
+    """Детальная информация о категории и список её событий через ORM."""
+    category = Category.objects.filter(pk=category_id).first()
 
     category_events = []
     if category is not None:
-        category_events = conn.execute("""
-            SELECT
-                events.id,
-                events.name,
-                events.event_date,
-                events.is_completed,
-                categories.name AS category,
-                categories.icon AS category_icon,
-                users.name AS user_name
-            FROM events
-            JOIN categories ON events.category_id = categories.id
-            JOIN users ON events.user_id = users.id
-            WHERE events.category_id = ?
-            ORDER BY events.event_date ASC;
-        """, [category_id]).fetchall()
-    conn.close()
+        category_events = (
+            category.events
+            .select_related("user", "category")
+            .order_by("event_date")
+        )
 
     context = {
         "category": category,

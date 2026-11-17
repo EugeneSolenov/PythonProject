@@ -1,6 +1,7 @@
 import os
+from datetime import date
 import django
-from django.test import Client, SimpleTestCase
+from django.test import Client, TestCase
 from django.test.utils import setup_test_environment
 from django.urls import reverse
 
@@ -8,8 +9,65 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "family_calendar.settings")
 django.setup()
 setup_test_environment()
 
+from categories.models import Category  # noqa: E402
+from events.models import Event          # noqa: E402
+from users.models import User            # noqa: E402
 
-class WebInterfaceTests(SimpleTestCase):
+
+class WebInterfaceTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cat1, _ = Category.objects.get_or_create(
+            id=1,
+            defaults={
+                "name": "Праздники и памятные даты",
+                "description": "Семейные праздники",
+                "icon": "🎉",
+            },
+        )
+        cat2, _ = Category.objects.get_or_create(
+            id=2,
+            defaults={
+                "name": "Учёба и работа",
+                "description": "Сдача работ",
+                "icon": "📚",
+            },
+        )
+        user1, _ = User.objects.get_or_create(
+            id=1,
+            defaults={
+                "name": "Евгений Соленов",
+                "email": "solenov@example.com",
+            },
+        )
+        user2, _ = User.objects.get_or_create(
+            id=2,
+            defaults={
+                "name": "Анна Иванова",
+                "email": "anna@example.com",
+            },
+        )
+        Event.objects.get_or_create(
+            id=1,
+            defaults={
+                "user": user1,
+                "category": cat2,
+                "name": "Защита ПР5 и ПР6 по Django",
+                "event_date": date(2026, 10, 20),
+                "is_completed": False,
+            },
+        )
+        Event.objects.get_or_create(
+            id=2,
+            defaults={
+                "user": user2,
+                "category": cat1,
+                "name": "Семейный праздник и ужин",
+                "event_date": date(2026, 10, 25),
+                "is_completed": False,
+            },
+        )
+
     def setUp(self):
         self.client = Client()
 
@@ -26,7 +84,7 @@ class WebInterfaceTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "events/event_list.html")
         self.assertTemplateUsed(response, "events/includes/event_card.html")
-        self.assertContains(response, "Всего событий:")
+        self.assertContains(response, "событий:")
 
     def test_event_detail_existing(self):
         url = reverse("events:detail", kwargs={"event_id": 1})

@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Поиск событий по дате — Семейный календарь{% endblock %}
+{% block title %}Поиск событий — Семейный календарь{% endblock %}
 
 {% block content %}
 <div class="mb-4">
     <h1 class="h2 text-primary">Поиск событий по дате</h1>
     <p class="text-muted">
-        Выберите дату, чтобы найти запланированные семейные мероприятия (параметризованный SQL-запрос).
+        Поиск по точной дате события или по ключевым словам в названии, категории и имени члена семьи (Django ORM с фильтрацией через Q-объекты).
     </p>
 </div>
 
 <div class="card p-4 shadow-sm mb-4">
     <form method="get" class="row g-3 align-items-end">
-        <div class="col-auto">
+        <div class="col-md-4">
             <label for="date" class="form-label fw-bold">Дата события:</label>
             <input
                 type="date"
@@ -20,14 +20,24 @@
                 name="date"
                 class="form-control"
                 value="{{ search_date }}"
-                required
             >
         </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-primary">
-                🔍 Найти события
+        <div class="col-md-5">
+            <label for="q" class="form-label fw-bold">Ключевые слова:</label>
+            <input
+                type="text"
+                id="q"
+                name="q"
+                class="form-control"
+                placeholder="Название, категория или член семьи..."
+                value="{{ query }}"
+            >
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+                🔍 Найти
             </button>
-            {% if search_date %}
+            {% if search_date or query %}
                 <a href="{% url 'events:search' %}" class="btn btn-outline-secondary">
                     Сбросить
                 </a>
@@ -36,9 +46,13 @@
     </form>
 </div>
 
-{% if search_date %}
+{% if search_date or query %}
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="h4 mb-0">Результаты поиска на дату: <span class="text-primary">{{ search_date }}</span></h3>
+        <h3 class="h4 mb-0">
+            Результаты поиска
+            {% if search_date %}на дату: <span class="text-primary">{{ search_date }}</span>{% endif %}
+            {% if query %}[запрос: <span class="text-primary">{{ query }}</span>]{% endif %}
+        </h3>
         <span class="badge bg-secondary fs-6">Найдено: {{ events|length }}</span>
     </div>
 
@@ -47,7 +61,7 @@
             {% include "events/includes/event_card.html" %}
         {% empty %}
             <div class="alert alert-info">
-                На выбранную дату событий не запланировано.
+                По вашему запросу событий не найдено.
             </div>
         {% endfor %}
     </div>

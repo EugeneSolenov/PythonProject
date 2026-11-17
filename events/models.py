@@ -39,7 +39,8 @@ class Event(models.Model):
 
     def __str__(self):
         status = "выполнено" if self.is_completed else "запланировано"
-        return f"{self.name} — {self.event_date} ({self.category.name}, {status})"
+        cat_name = self.category.name if self.category else ""
+        return f"{self.name} — {self.event_date} ({cat_name}, {status})"
 
     def complete(self):
         """Помечает событие как выполненное."""
@@ -58,3 +59,18 @@ class Event(models.Model):
     def is_upcoming(self, today=None):
         """Проверяет, является ли событие предстоящим."""
         return self.days_until(today) >= 0 and not self.is_completed
+
+    @property
+    def category_icon(self):
+        """Иконка категории для шаблонов."""
+        return self.category.icon if self.category else ""
+
+    @property
+    def user_name(self):
+        """Имя ответственного пользователя для шаблонов."""
+        return self.user.name if self.user else ""
+
+    @property
+    def user_email(self):
+        """Email ответственного пользователя для шаблонов."""
+        return self.user.email if self.user else ""
