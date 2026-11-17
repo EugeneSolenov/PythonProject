@@ -501,9 +501,47 @@ make_report(
 )
 
 
+TEMPLATE_TITLE_PATH = REPORTS_DIR / "tasks" / "Template_Тит_лист.docx"
+
+
 def make_pr9_report():
-    document = Document()
-    configure(document)
+    if TEMPLATE_TITLE_PATH.exists():
+        document = Document(TEMPLATE_TITLE_PATH)
+        for p in document.paragraphs:
+            if "Практическое занятие №" in p.text:
+                p.text = "Практическое занятие № 9"
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                for r in p.runs:
+                    r.bold = True
+                    r.font.name = "Times New Roman"
+                    r.font.size = Pt(14)
+            elif "Тема работы:" in p.text:
+                p.text = (
+                    "Тема работы: \tМодели Django, связи и операции с базой "
+                    "данных через ORM"
+                )
+                for r in p.runs:
+                    r.font.name = "Times New Roman"
+                    r.font.size = Pt(12)
+
+        if len(document.tables) > 1:
+            t1 = document.tables[1]
+            if len(t1.cell(1, 2).paragraphs) > 1:
+                p_grp = t1.cell(1, 2).paragraphs[1]
+                p_grp.text = "ЭФБО-06-24"
+                for r in p_grp.runs:
+                    r.font.name = "Times New Roman"
+                    r.font.size = Pt(12)
+            p_name = t1.cell(1, 6).paragraphs[0]
+            p_name.text = "Соленов Е. О."
+            for r in p_name.runs:
+                r.font.name = "Times New Roman"
+                r.font.size = Pt(12)
+
+        document.add_page_break()
+    else:
+        document = Document()
+        configure(document)
 
     title = add_line(
         document,
