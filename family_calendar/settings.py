@@ -20,8 +20,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "homepage",
-    "events",
+    "users",
     "categories",
+    "events",
 ]
 
 MIDDLEWARE = [
